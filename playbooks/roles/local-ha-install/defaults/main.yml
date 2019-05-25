@@ -1,0 +1,25 @@
+---
+# defaults file for local-ha-install
+
+nxrm3_install_archive_file: /var/tmp/nexus-3.16.1-02-mac.tgz
+nxrm3_version: nexus-3.16.1-02
+
+install_dir: /opt/nxrm3-ha-local-install
+license_file: /var/tmp/sonatype.lic
+
+# MacOSX - you'll need gtar installed (for unarchive)
+# "brew install gnu-tar" 
+# edit .bashrc - "export PATH=/usr/local/Cellar/gnu-tar/1.32/bin:$PATH"
+
+nxrm3_nodes:
+  - name: node1
+    path: node1
+    port: 8001
+  - name: node2
+    path: node2
+    port: 8002
+  - name: node3
+    path: node3
+    port: 8003
+
+

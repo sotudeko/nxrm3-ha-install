@@ -1,0 +1,98 @@
+---
+# tasks file for local-ha-install
+
+- name: Check installation directory 
+  stat:
+    path: "{{ install_dir }}"
+  register: install_dir_details
+
+- name: Stop if already install
+  fail: msg="The installation directory already exists"
+  when: install_dir_details.stat.exists
+
+- name: Check install archive file available 
+  stat:
+    path: "{{ nxrm3_install_archive_file }}"
+  register: archive_file
+
+- name: Stop if install archive file not found
+  fail: msg="Could not find the install archive file"
+  when: not archive_file.stat.exists
+
+- name: Create installation directory
+  file:
+    path: "{{ install_dir }}/{{ node_dir.path }}"
+    state: directory
+  loop: "{{ nxrm3_nodes }}"
+  loop_control:
+    loop_var: node_dir
+
+- name: install NXRM3
+  unarchive:
+    src: "{{ nxrm3_install_archive_file }}"
+    dest: "{{ install_dir}}/{{ node_install.path }}"
+  loop: "{{ nxrm3_nodes }}"
+  loop_control:
+    loop_var: node_install
+  
+- name: Create etc in work directory
+  file:
+    path: "{{ install_dir }}/{{ node_etcdir.path }}/sonatype-work/nexus3/etc"
+    state: directory
+  loop: "{{ nxrm3_nodes }}"
+  loop_control:
+    loop_var: node_etcdir
+
+- name: Create the nexus.properties file
+  copy:
+    src: "{{ install_dir }}/{{ node_properties.path }}/{{ nxrm3_version }}/etc/nexus-default.properties"
+    dest: "{{ install_dir }}/{{ node_properties.path }}/sonatype-work/nexus3/etc/nexus.properties"
+  loop: "{{ nxrm3_nodes }}"
+  loop_control:
+    loop_var: node_properties
+
+- name: Update node ports
+  replace:
+    path: "{{ install_dir }}/{{ node_port.path }}/sonatype-work/nexus3/etc/nexus.properties"
+    regexp: 'application-port=8081'
+    replace: "application-port={{ node_port.port }}"
+  loop: "{{ nxrm3_nodes }}"
+  loop_control:
+    loop_var: node_port
+
+- name: Set property to disable periodic logging
+  lineinfile:
+    path: "{{ install_dir }}/{{ set_log_clustered.path }}/sonatype-work/nexus3/etc/nexus.properties"
+    line: 'nexus.log.cluster.enabled=false'
+    insertafter: EOF
+  loop: "{{ nxrm3_nodes }}"
+  loop_control:
+    loop_var: set_log_clustered
+
+- name: Set property to enable cluster mode
+  lineinfile:
+    path: "{{ install_dir }}/{{ set_clustered.path }}/sonatype-work/nexus3/etc/nexus.properties"
+    line: 'nexus.clustered=true'
+    insertafter: EOF
+  loop: "{{ nxrm3_nodes }}"
+  loop_control:
+    loop_var: set_clustered
+
+- name: Add license file to node1
+  lineinfile:
+    path: "{{ install_dir }}/{{ nxrm3_nodes[0].path }}/sonatype-work/nexus3/etc/nexus.properties"
+    line: 'nexus.licenseFile=/Users/sotudeko/sonatype-nexus-firewall-lifecycle-2017.lic'
+    insertafter: EOF
+
+- name: Start NXRM3 on node1
+  command: ./nexus start
+  args:
+    chdir: "{{ install_dir }}/{{ nxrm3_nodes[0].path }}/{{ nxrm3_version }}/bin"
+    
+  
+  
+
+
+
+
+  
